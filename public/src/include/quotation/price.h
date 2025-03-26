@@ -181,31 +181,6 @@ namespace lime
         return s;
     }
 
-
-    //=========================================================================
-    [[__maybe_unused__]]
-    static constexpr auto operator *
-    (
-        price_concept auto const & price,
-        shares_concept auto const & shares
-    )
-    {
-        return (price * shares.get());
-    }
-
-
-    //=========================================================================
-    [[__maybe_unused__]]
-    static constexpr auto operator *
-    (
-        shares_concept auto const & shares,
-        price_concept auto const & price
-    )
-    {
-        return (price * shares.get());
-    }
-
-
 } // namespace lime
 
 
