@@ -59,7 +59,7 @@ function(fetch_dependency dependency)
     message("\n${ColorBold}===================================================================================================================${ColorReset}")
     message("${ColorBold}Fetching Content:${ColorReset} REPOSITORY = ${repo_name}, URL = ${url}, BRANCH = ${tag}  ")
     if (NOT USING_CURRENT_BRANCH)
-        message("${ColorRed}${ColorBold}Warning: fetching branch ${tag} instead of current branch ${GIT_BRANCH}")
+        #message("${ColorRed}${ColorBold}Warning: fetching branch ${tag} instead of current branch ${GIT_BRANCH}")
     endif()
     message("${ColorBold}===================================================================================================================${ColorReset}")
 

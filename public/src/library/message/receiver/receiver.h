@@ -49,7 +49,9 @@ namespace lime::message
     {
     public:
 
-        static auto constexpr allow_polymorphic_target = false;
+        virtual ~receiver() = default;
+
+    protected:
 
         using target = std::decay_t<T>;
         using protocol = P;
@@ -62,12 +64,9 @@ namespace lime::message
             std::span<char const>
         );
 
-    protected:
-
         receiver();
         receiver(receiver &&) = default;
         receiver & operator = (receiver &&) = default;
-        ~receiver() = default;
 
         void process_message
         (
@@ -86,7 +85,6 @@ namespace lime::message
         static auto constexpr max_underlying_message_indicator_value = (1 << (sizeof(underlying_message_indicator) * bits_per_byte));
 
         template <message_indicator M>
-        requires ((not std::is_polymorphic_v<target>) || ((std::is_polymorphic_v<target>) && allow_polymorphic_target))
         static void dispatch_message
         (
             receiver & self,
@@ -94,10 +92,7 @@ namespace lime::message
         )
         {
             using message_type = message<protocol, M>;
-            if constexpr (std::is_polymorphic_v<target>)
-                dynamic_cast<target &>(self)(*reinterpret_cast<message_type const *>(address)); // careful this path is slow
-            else
-                reinterpret_cast<target &>(self)(*reinterpret_cast<message_type const *>(address)); // better to ensure that target is not polymorphic
+            static_cast<target &>(self)(*reinterpret_cast<message_type const *>(address));
         }
 
         static std::array<void(*)(receiver &, void const *), max_underlying_message_indicator_value> callback_;
@@ -121,9 +116,6 @@ lime::message::receiver<T, P>::receiver
 (
 )
 {
-
-    static_assert(not std::is_polymorphic_v<receiver<T, P>>);
-
     [[__maybe_unused__]] static auto once = [&]<std::size_t ... N>(std::index_sequence<N ...>)
     {
         for (auto & callback : callback_)
@@ -178,4 +170,3 @@ auto lime::message::receiver<T, P>::process
     }
     return {cur, bytesRemaining};
 }
-
