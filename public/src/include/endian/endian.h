@@ -63,6 +63,12 @@ namespace lime
 
         constexpr endian() = default;
 
+        template <typename T>
+        constexpr endian
+        (
+            T &&
+        );
+
         template <typename T0, typename ... Ts>
         requires ((sizeof ... (Ts) > 1) || !std::is_same_v<data_type, T0>)
         constexpr endian
@@ -81,11 +87,6 @@ namespace lime
             endian &&
         ) = default;
 
-        constexpr endian
-        (
-            underlying_type const &
-        );
-
         constexpr endian & operator =
         (
             endian const &
@@ -100,7 +101,7 @@ namespace lime
         requires (std::is_convertible_v<underlying_type, T>)
         constexpr endian & operator =
         (
-            T const &
+            T &&
         );
 
         template <typename T>
@@ -179,12 +180,14 @@ constexpr lime::endian<data_type, endian_type>::endian
 
 //==============================================================================
 template <typename data_type, std::endian endian_type>
+template <typename T>
+//requires (std::is_convertible_v<data_type, T>)
 constexpr lime::endian<data_type, endian_type>::endian
 (
-    data_type const & input
+    T && input
 )
 {
-    value_ = endian_swap<std::endian::native, endian_type>(input);
+    value_ = endian_swap<std::endian::native, endian_type>(underlying_type(std::forward<T>(input)));
 }
 
 
@@ -194,10 +197,10 @@ template <typename T>
 requires (std::is_convertible_v<data_type, T>)
 constexpr auto lime::endian<data_type, endian_type>::operator =
 (
-    T const & input
+    T && input
 ) -> endian &
 {
-    value_ = endian_swap<std::endian::native, endian_type>(input);
+    value_ = endian_swap<std::endian::native, endian_type>(underlying_type(std::forward<T>(input)));
     return *this;
 }
 
