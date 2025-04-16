@@ -71,7 +71,8 @@ endif()
 
 ###############################################################################
 include("./scripts/fetch_dependencies.cmake")
-# fetch_dependency("git@github:account/repo_name;branch")
+fetch_dependency("https://github.com/nlohmann/json.git;develop")
+
 
 set(CMAKE_INSTALL_LIBDIR /usr/lib64)
 set(_${PROJECT_NAME}_dir ${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "")
