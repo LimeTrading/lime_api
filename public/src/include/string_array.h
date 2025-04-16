@@ -29,239 +29,276 @@ SOFTWARE.
 
 #pragma once
 
-#include "./non_copyable.h"
+#include <include/endian.h>
+#include <include/trim.h>
 
+#include <array>
+#include <cstdint>
+#include <string_view>
+#include <type_traits>
 #include <concepts>
-#include <cstddef>
-#include <vector>
+#include <span>
+#include <algorithm>
 
 
 namespace lime
 {
 
-    template <typename T>
-    class spsc_fixed_queue : non_copyable
+    #pragma pack(push, 1)
+    template <std::size_t N, char F = ' '>
+    class string_array
     {
     public:
 
-        using type = T;
-        using value_type = T;
+        static auto constexpr fill = F;
+        static auto constexpr max_size = N;
+        using value_type = std::array<char, max_size>;
+        using size_type = std::size_t;
 
-        spsc_fixed_queue
+        string_array();
+
+        string_array
         (
-            std::size_t
+            value_type const &
         );
 
-        spsc_fixed_queue(spsc_fixed_queue &&) = default;
-        spsc_fixed_queue & operator = (spsc_fixed_queue &&) = default;
-        ~spsc_fixed_queue() = default;
-
-        type pop();
-
-        std::size_t pop
+        string_array
         (
-            type &
+            std::string const &
         );
 
-        std::size_t try_pop
+        string_array
         (
-            type &
+            std::string_view const
         );
 
-        template <typename T_>
-        bool push
+        string_array
         (
-            T_ &&
+            std::span<char const>
         );
 
-        template <typename ... Ts>
-        bool emplace
-        (
-            Ts && ...
-        );
+        ~string_array() = default;
+        string_array(string_array const &) = default;
+        string_array(string_array &&) = default;
+        string_array & operator = (string_array const &) = default;
+        string_array & operator = (string_array &&) = default;
 
-        T const & front() const;
+        std::string_view const get() const;
+
+        constexpr operator std::string_view const() const;
+
+        constexpr operator std::span<char const> const() const;
+
+        constexpr size_type size() const;
+
+        static constexpr size_type capacity();
+
+        static constexpr char get_fill_character();
+
+        constexpr auto empty() const;
+
+        constexpr auto begin() const{return value_.begin();}
+
+        constexpr auto end() const{return value_.end();}
+
+        constexpr auto begin(){return value_.begin();}
+
+        constexpr auto end(){return value_.end();}
+
+        void clear();
+
+        constexpr auto operator <=>
+        (
+            string_array const & other
+        ) const
+        {
+            return strncmp(value_.data(), other.value_.data(), value_.size());
+        }
         
-        T & front();
-
-        bool empty() const;
-
-        std::size_t capacity() const;
-
-        std::size_t size() const;
-
-        std::size_t discard();
-
     private:
 
-        std::size_t volatile        front_;
+        value_type  value_;
 
-        std::size_t volatile        back_;
+    }; // string_array
+    #pragma pack(pop)
 
-        std::size_t                 capacity_;
-        std::size_t                 capacityMask_;
 
-        std::vector<type>           queue_;
-    };
+    template <typename T>
+    concept string_array_concept = std::is_same_v<T, string_array<T::max_size, T::fill>>;
 
 } // namespace lime
 
 
-//==============================================================================
-template <typename T>
-lime::spsc_fixed_queue<T>::spsc_fixed_queue
+namespace std
+{
+    template <lime::string_array_concept T>
+    struct hash<T>
+    {
+        std::size_t operator()
+        (
+            T const & stringArray
+        ) const
+        {
+            return std::hash<std::string_view>()(trim(stringArray));
+        }
+    };
+}
+
+
+//=============================================================================
+[[__maybe_unused__]]
+static std::ostream & operator <<
 (
-    std::size_t capacity
+    std::ostream & stream,
+    lime::string_array_concept auto const & stringArray
+)
+{
+    stream << stringArray.get();
+    return stream;
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
+)
+{
+    std::fill_n(value_.data(), value_.size(), fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
+    std::string_view const value
+)
+{
+    auto bytesToCopy = std::min(value.size(), value_.size());
+    std::copy_n(value.data(), bytesToCopy, value_.data());
+    if (bytesToCopy < value_.size())
+        std::fill_n(value_.data() + bytesToCopy, value_.size() - bytesToCopy, fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
+    std::string const & value
+)
+{
+    auto bytesToCopy = std::min(value.size(), value_.size());
+    std::copy_n(value.data(), bytesToCopy, value_.data());
+    if (bytesToCopy < value_.size())
+        std::fill_n(value_.data() + bytesToCopy, value_.size() - bytesToCopy, fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
+    std::span<char const> value
+)
+{
+    auto bytesToCopy = std::min(value.size(), value_.size());
+    std::copy_n(value.data(), bytesToCopy, value_.data());
+    if (bytesToCopy < value_.size())
+        std::fill_n(value_.data() + bytesToCopy, value_.size() - bytesToCopy, fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
+    value_type const & value
 ):
-    front_(0), 
-    back_(0)
+    value_(value)
 {
-    capacity_ = 1;
-    while (capacity_ < capacity)
-        capacity_ <<= 1;
-    capacityMask_ = capacity_ - 1;
-    queue_.resize(capacity_);
 }
 
 
-//==============================================================================
-template <typename T>
-inline std::size_t lime::spsc_fixed_queue<T>::capacity
+//=============================================================================
+template <std::size_t N, char F>
+void lime::string_array<N, F>::clear
+(
+)
+{
+    std::fill_n(value_.data(), value_.size(), fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+std::string_view const lime::string_array<N, F>::get
 (
 ) const
 {
-    return capacity_;
+    return {value_.data(), size()};
 }
 
 
-//==============================================================================
-template <typename T>
-T & lime::spsc_fixed_queue<T>::front
-(
-)
-{
-    return queue_[front_ & capacityMask_];
-}
-
-
-//==============================================================================
-template <typename T>
-T const & lime::spsc_fixed_queue<T>::front
+//=============================================================================
+template <std::size_t N, char F>
+constexpr lime::string_array<N, F>::operator std::string_view const
 (
 ) const
 {
-    return queue_[front_ & capacityMask_];
+    return {value_.data(), size()};
 }
 
 
-//==============================================================================
-template <typename T>
-inline auto lime::spsc_fixed_queue<T>::pop
-(
-) -> type
-{
-    std::size_t front = front_;
-    type ret = std::move(queue_[front++ & capacityMask_]);
-    front_ = front;
-    return ret;
-}
-
-
-//==============================================================================
-template <typename T>
-inline std::size_t lime::spsc_fixed_queue<T>::discard
-(
-)
-{
-    queue_[front_ & capacityMask_] = {};
-    front_ = front_ + 1;
-    return (back_ - front_);
-}
-
-
-//==============================================================================
-template <typename T>
-inline std::size_t lime::spsc_fixed_queue<T>::pop
-(
-    type & value
-)
-{
-    auto front = front_;
-    auto size = (back_ - front);
-    value = std::move(queue_[front++ & capacityMask_]);
-    front_ = front;
-    return size;
-}
-
-
-//==============================================================================
-template <typename T>
-inline std::size_t lime::spsc_fixed_queue<T>::try_pop
-(
-    type & value
-)
-{
-    if (auto front = front_, size = (back_ - front); size > 0)
-    {
-        value = std::move(queue_[front++ & capacityMask_]);
-        front_ = front;
-        return size;
-    }
-    return 0;
-}
-
-
-//==============================================================================
-template <typename T>
-template <typename ... Ts>
-inline bool lime::spsc_fixed_queue<T>::emplace
-(
-    Ts && ... args
-)
-{
-    if (std::size_t back = back_; (back - front_) < capacity_)
-    {
-        queue_[back++ & capacityMask_] = T(std::forward<Ts>(args) ...);
-        back_ = back;
-        return true;
-    }
-    return false;
-}
-
-
-//==============================================================================
-template <typename T>
-template <typename T_>
-inline bool lime::spsc_fixed_queue<T>::push
-(
-    T_ && value
-)
-{
-    if (std::size_t back = back_; (back - front_) < capacity_)
-    {
-        queue_[back++ & capacityMask_] = std::forward<T_>(value);
-        back_ = back;
-        return true;
-    }
-    return false;
-}
-
-
-//==============================================================================
-template <typename T>
-inline bool lime::spsc_fixed_queue<T>::empty
+//=============================================================================
+template <std::size_t N, char F>
+constexpr lime::string_array<N, F>::operator std::span<char const> const
 (
 ) const
 {
-    return (back_ == front_);
+    return {value_.data(), size()};
 }
 
 
-//==============================================================================
-template <typename T>
-inline std::size_t lime::spsc_fixed_queue<T>::size
+//=============================================================================
+template <std::size_t N, char F>
+auto constexpr lime::string_array<N, F>::size
+(
+) const -> size_type
+{
+    for (auto i = 0ull; i < capacity(); ++i)
+        if (value_[i] == fill)
+            return i;
+    return capacity();
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+auto constexpr lime::string_array<N, F>::empty
 (
 ) const
 {
-    return (back_ - front_);
+    return (size() == 0);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+auto constexpr lime::string_array<N, F>::capacity
+(
+) -> size_type
+{
+    return N;
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+auto constexpr lime::string_array<N, F>::get_fill_character
+(
+) -> char
+{
+    return fill;
 }
