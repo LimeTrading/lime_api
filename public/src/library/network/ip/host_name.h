@@ -23,27 +23,38 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Author: MAM
+    Creation Date:  February 27, 2025
 */
 
 #pragma once
 
-#include "./ip/socket_address.h"
-
-#include <cstdint>
+#include <string>
+#include <span>
 
 
 namespace lime::network
 {
 
-    //=========================================================================
-    enum class network_mode : std::uint32_t
+    class ip_address;
+
+
+    class host_name
     {
-        undefined       = 0,
-        kernel_bypass   = 1,
-        kernel          = 2
+    public:
+
+        host_name() = default;
+
+        host_name
+        (
+            std::span<char const>
+        );
+
+        operator ip_address() const;
+
+    private:
+
+        std::string value_;
     };
 
 } // namespace lime::network
-
