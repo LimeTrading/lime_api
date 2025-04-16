@@ -86,6 +86,26 @@ namespace lime
         constexpr auto get_underlying_value() const;
         static constexpr auto get_precision();
 
+        constexpr fixed_price operator - (numeric_concept auto n){auto value = value_; return {value - n};}
+        constexpr fixed_price & operator -= (numeric_concept auto n){value_ -= n; return *this;}
+        constexpr fixed_price operator - (fixed_price_concept auto const & other){auto value = value_; return {value - other.value_};}
+        constexpr fixed_price & operator -= (fixed_price_concept auto const & other){value_ -= other.get(); return *this;}
+
+        constexpr fixed_price operator + (numeric_concept auto n){auto value = value_; return {value + n};}
+        constexpr fixed_price & operator += (numeric_concept auto n){value_ += n; return *this;}
+        constexpr fixed_price operator + (fixed_price_concept auto const & other){auto value = value_; return {value + other.value_};}
+        constexpr fixed_price & operator += (fixed_price_concept auto const & other){value_ += other.get(); return *this;}
+
+        constexpr fixed_price operator * (numeric_concept auto n) const {return fixed_price(value_ * n);}
+        constexpr fixed_price & operator *= (numeric_concept auto n) {value_ *= n; return *this;}
+        constexpr fixed_price operator * (fixed_price_concept auto const & other) const {return {value_ * other.value_};}
+        constexpr fixed_price & operator *= (fixed_price_concept auto const & other) {value_ *= other.value_; return *this;}
+
+        constexpr fixed_price operator / (numeric_concept auto n) const {return fixed_price(value_ / n);}
+        constexpr fixed_price & operator /= (numeric_concept auto n) {value_ /= n; return *this;}
+        constexpr fixed_price operator / (fixed_price_concept auto const & other) const {return {value_ / other.value_};}
+        constexpr fixed_price & operator /= (fixed_price_concept auto const & other) {value_ /= other.value_; return *this;}
+
         constexpr auto operator <=> 
         (
             fixed_price_concept auto const &
@@ -147,6 +167,31 @@ namespace lime
             s[i] = (i == end) ? '.' : s[i - 1];
         return s;
     }
+
+
+    //=========================================================================
+    [[__maybe_unused__]]
+    static constexpr auto operator *
+    (
+        fixed_price_concept auto const & price,
+        shares_concept auto const & shares
+    )
+    {
+        return (price * shares.get());
+    }
+
+
+    //=========================================================================
+    [[__maybe_unused__]]
+    static constexpr auto operator *
+    (
+        shares_concept auto const & shares,
+        fixed_price_concept auto const & price
+    )
+    {
+        return (price * shares.get());
+    }
+
 
 } // namespace lime
 

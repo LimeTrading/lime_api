@@ -24,7 +24,52 @@ SOFTWARE.
 
 /*
     Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Creation Date:  April 16th, 2025
 */
 
-#include "./message.h"
+#pragma once
+
+#include <nlohmann/json.hpp>
+
+#include <filesystem>
+#include <chrono>
+
+
+namespace lime::configuration
+{
+
+    using json = nlohmann::json;
+
+    json read_from_file
+    (
+        std::filesystem::path
+    );
+
+    std::size_t write_to_file
+    (
+        std::filesystem::path,
+        json const &
+    );
+
+} // namespace lime::configuration
+
+
+namespace nlohmann {
+    template <typename Rep, typename Per>
+    struct adl_serializer<std::chrono::duration<Rep, Per>>
+    {
+        static void to_json(json & destination, std::chrono::duration<Rep, Per> const & source)
+        {
+            destination = source.count();
+        }
+
+        static void from_json(json const & source, std::chrono::duration<Rep, Per> & destination)
+        {
+            destination = std::chrono::duration<Rep, Per>(source);
+        }
+    };
+}
+
+
+#include "./configuration_setting.h"
+#include "./configuration_stream.h"

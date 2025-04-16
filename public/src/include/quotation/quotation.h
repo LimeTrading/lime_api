@@ -58,8 +58,19 @@ namespace lime
         abstract        = 8 
     };
 
+
+    static auto constexpr bid_quotation = quotation_type::bid;
+    static auto constexpr ask_quotation = quotation_type::ask;
+    static auto constexpr trade_quotation = quotation_type::trade;
+    static auto constexpr strike_quotation = quotation_type::strike;
+    static auto constexpr abstract_quotation = quotation_type::abstract;
+    static auto constexpr round_lot_quotation = quotation_type::round_lot;
+    static auto constexpr volume_quotation = quotation_type::volume;
+    static auto constexpr imbalance_quotation = quotation_type::imbalance;
+
+
     template <typename T>
-    concept quotable_concept = (shares_concept<T> || price_concept<T>);
+    concept quotable_concept = (shares_concept<T> || price_concept<T> || fixed_price_concept<T>);
 
     template <quotation_type T0, quotable_concept T1> struct quotation;
 
@@ -144,23 +155,35 @@ namespace lime
     // price quotation types
     template <quotation_type T0, std::integral T1> using price_quotation = quotation<T0, price<T1>>;
 
-    template <std::integral T> using bid_price = price_quotation<quotation_type::bid, T>;
-    template <std::integral T> using ask_price = price_quotation<quotation_type::ask, T>;
-    template <std::integral T> using trade_price = price_quotation<quotation_type::trade, T>;
-    template <std::integral T> using strike_price = price_quotation<quotation_type::strike, T>;
-    template <std::integral T> using abstract_price = price_quotation<quotation_type::abstract, T>;
+    template <std::integral T> using bid_price = price_quotation<bid_quotation, T>;
+    template <std::integral T> using ask_price = price_quotation<ask_quotation, T>;
+    template <std::integral T> using trade_price = price_quotation<trade_quotation, T>;
+    template <std::integral T> using strike_price = price_quotation<strike_quotation, T>;
+    template <std::integral T> using abstract_price = price_quotation<abstract_quotation, T>;
+    template <std::integral T> using imbalance_price = price_quotation<imbalance_quotation, T>;
 
+    //=========================================================================
+    // fixed_price quotation types
+    template <quotation_type T0, std::uint32_t T1, std::integral T2> using fixed_price_quotation = quotation<T0, fixed_price<T1, T2>>;
+
+    template <std::uint32_t T0, std::integral T1> using bid_fixed_price = fixed_price_quotation<bid_quotation, T0, T1>;
+    template <std::uint32_t T0, std::integral T1> using ask_fixed_price = fixed_price_quotation<ask_quotation, T0, T1>;
+    template <std::uint32_t T0, std::integral T1> using trade_fixed_price = fixed_price_quotation<trade_quotation, T0, T1>;
+    template <std::uint32_t T0, std::integral T1> using strike_fixed_price = fixed_price_quotation<strike_quotation, T0, T1>;
+    template <std::uint32_t T0, std::integral T1> using abstract_fixed_price = fixed_price_quotation<abstract_quotation, T0, T1>;
+    template <std::uint32_t T0, std::integral T1> using imbalance_fixed_price = fixed_price_quotation<imbalance_quotation, T0, T1>;
 
     //=========================================================================
     // shares quotation types
     template <quotation_type T0, std::integral T1> using shares_quotation = quotation<T0, shares<T1>>;
 
-    template <std::integral T> using bid_shares = shares_quotation<quotation_type::bid, T>;
-    template <std::integral T> using ask_shares = shares_quotation<quotation_type::ask, T>;
-    template <std::integral T> using trade_shares = shares_quotation<quotation_type::trade, T>;
-    template <std::integral T> using round_lot_shares = shares_quotation<quotation_type::round_lot, T>;
-    template <std::integral T> using volume_shares = shares_quotation<quotation_type::volume, T>;
-    template <std::integral T> using abstract_shares = shares_quotation<quotation_type::abstract, T>;
+    template <std::integral T> using bid_shares = shares_quotation<bid_quotation, T>;
+    template <std::integral T> using ask_shares = shares_quotation<ask_quotation, T>;
+    template <std::integral T> using trade_shares = shares_quotation<trade_quotation, T>;
+    template <std::integral T> using round_lot_shares = shares_quotation<round_lot_quotation, T>;
+    template <std::integral T> using volume_shares = shares_quotation<volume_quotation, T>;
+    template <std::integral T> using abstract_shares = shares_quotation<abstract_quotation, T>;
+    template <std::integral T> using imbalance_shares = shares_quotation<imbalance_quotation, T>;
 
 
     //=========================================================================

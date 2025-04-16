@@ -25,5 +25,4 @@
 # Creation Date:  March 25th, 2025
 
 add_subdirectory(./executable)
-add_subdirectory(./library)
 add_subdirectory(./test)

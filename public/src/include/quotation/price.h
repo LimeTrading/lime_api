@@ -128,6 +128,26 @@ namespace lime
         constexpr auto get_underlying_value() const;
         constexpr auto get_precision() const;
 
+        constexpr price operator - (numeric_concept auto n){auto value = value_; return {value - n};}
+        constexpr price & operator -= (numeric_concept auto n){value_ -= n; return *this;}
+        constexpr price operator - (price_concept auto const & other){auto value = value_; return {value - other.value_};}
+        constexpr price & operator -= (price_concept auto const & other){value_ -= other.get(); return *this;}
+
+        constexpr price operator + (numeric_concept auto n){auto value = value_; return {value + n};}
+        constexpr price & operator += (numeric_concept auto n){value_ += n; return *this;}
+        constexpr price operator + (price_concept auto const & other){auto value = value_; return {value + other.value_};}
+        constexpr price & operator += (price_concept auto const & other){value_ += other.get(); return *this;}
+
+        constexpr price operator * (numeric_concept auto n) const {return price(value_ * n);}
+        constexpr price & operator *= (numeric_concept auto n) {value_ *= n; return *this;}
+        constexpr price operator * (price_concept auto const & other) const {return {value_ * other.value_};}
+        constexpr price & operator *= (price_concept auto const & other) {value_ *= other.value_; return *this;}
+
+        constexpr price operator / (numeric_concept auto n) const {return price(value_ / n);}
+        constexpr price & operator /= (numeric_concept auto n) {value_ /= n; return *this;}
+        constexpr price operator / (price_concept auto const & other) const {return {value_ / other.value_};}
+        constexpr price & operator /= (price_concept auto const & other) {value_ /= other.value_; return *this;}
+
         constexpr auto operator <=> 
         (
             price_concept auto const &
@@ -180,6 +200,31 @@ namespace lime
             s[i] = (i == end) ? '.' : s[i - 1];
         return s;
     }
+
+
+    //=========================================================================
+    [[__maybe_unused__]]
+    static constexpr auto operator *
+    (
+        price_concept auto const & price,
+        shares_concept auto const & shares
+    )
+    {
+        return (price * shares.get());
+    }
+
+
+    //=========================================================================
+    [[__maybe_unused__]]
+    static constexpr auto operator *
+    (
+        shares_concept auto const & shares,
+        price_concept auto const & price
+    )
+    {
+        return (price * shares.get());
+    }
+
 
 } // namespace lime
 

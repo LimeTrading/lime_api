@@ -48,6 +48,8 @@ namespace lime::message
             using message_indicator = T1;
             static constexpr auto name_{T0};
             static constexpr auto version_{V};
+
+            static auto constexpr get_name(){return T0;}
         };  
     
     }
@@ -59,7 +61,7 @@ namespace lime::message
     
 
     template <typename T>
-    concept protocol_traits_concept = std::is_base_of_v<details::protocol_traits<T::name_, T::version_, typename T::message_indicator>, T>;
+    concept protocol_traits_concept = std::is_base_of_v<details::protocol_traits<T::get_name(), T::version_, typename T::message_indicator>, T>;
     
 } // namespace lime::message
 
@@ -88,4 +90,3 @@ static constexpr auto operator ==
         return false;
     return (first.version_ == second.version_);
 }
-

@@ -32,6 +32,8 @@ SOFTWARE.
 #include "./byte_swap.h"
 #include "./endian_swap.h"
 
+#include <library/configuration.h>
+
 #include <concepts>
 #include <type_traits>
 #include <bit>
@@ -147,6 +149,11 @@ namespace lime
             return (get() == other);
         }
 
+        template <typename T> constexpr underlying_type operator & (T const &) const;
+        template <typename T> constexpr underlying_type operator | (T const &) const;
+        template <typename T> constexpr endian & operator &= (T const &);
+        template <typename T> constexpr endian & operator |= (T const &);
+
     private:
 
         underlying_type  value_;
@@ -159,7 +166,44 @@ namespace lime
     template <typename data_type> using native_endian = endian<data_type, std::endian::native>;
     template <typename data_type> using host_order = native_endian<data_type>;
 
+
+    //=========================================================================
+    template <endian_concept T>
+    static inline void to_json
+    (
+        configuration::json & destination,
+        endian_concept auto source
+    )
+    {
+        destination = source.get();
+    }
+
+
+    //=========================================================================
+    template <endian_concept T>
+    static inline void from_json
+    (
+        configuration::json const & source,
+        endian_concept auto & destination
+    )
+    {
+        destination = T(source.get<typename T::underlying_type>());
+    }
+
 } // namespace lime
+
+
+//=============================================================================
+[[__maybe_unused__]]
+static std::ostream & operator <<
+(
+    std::ostream & stream,
+    lime::endian_concept auto const & value
+)
+{
+    stream << value.get();
+    return stream;
+}
 
 
 //==============================================================================
@@ -212,4 +256,54 @@ constexpr auto lime::endian<data_type, endian_type>::get
 ) const -> underlying_type
 {
     return endian_swap<endian_type, std::endian::native>(value_);
+}
+
+
+//==============================================================================
+template <typename data_type, std::endian endian_type>
+template <typename T>
+constexpr auto lime::endian<data_type, endian_type>::operator & 
+(
+    T const & other
+) const -> underlying_type 
+{
+    return underlying_type(get() & other);
+}
+
+
+//==============================================================================
+template <typename data_type, std::endian endian_type>
+template <typename T>
+constexpr auto lime::endian<data_type, endian_type>::operator | 
+(
+    T const & other
+) const -> underlying_type 
+{
+    return underlying_type(get() | other);
+}
+
+
+//==============================================================================
+template <typename data_type, std::endian endian_type>
+template <typename T>
+constexpr auto lime::endian<data_type, endian_type>::operator &= 
+(
+    T const & other
+) -> endian &
+{
+    value_ = endian_swap<std::endian::native, endian_type>(underlying_type(get() & other));
+    return *this;
+}
+
+
+//==============================================================================
+template <typename data_type, std::endian endian_type>
+template <typename T>
+constexpr auto lime::endian<data_type, endian_type>::operator |= 
+(
+    T const & other
+) -> endian &
+{
+    value_ = endian_swap<std::endian::native, endian_type>(underlying_type(get() | other));
+    return *this;
 }

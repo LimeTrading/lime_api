@@ -23,34 +23,33 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Author: MAM
+    Creation Date:  April 16, 2025
 */
 
 
 #pragma once
 
-#include "./protocol/protocol.h"
-
-#include <concepts>
-#include <tuple>
-#include <type_traits>
+#include <string_view>
+#include <span>
 
 
-namespace lime::message
+namespace lime
 {
+    [[__maybe_unused__]]
+    static std::string_view const trim
+    (
+        std::span<char const> source
+    )
+    {
+        static auto constexpr is_whitespace = [](auto c){for (auto w : {'\t', '\r', '\n', ' ', '\0'}) if (c == w) return true; return false;};
+        auto begin = source.data();
+        auto end = begin + source.size();
+        while ((begin < end) && (is_whitespace(*begin)))
+            ++begin;
+        while ((end > begin) && (is_whitespace(end[-1])))
+            --end;
+        return {begin, (unsigned)std::distance(begin, end)};
+    } 
 
-    template <protocol_concept T0, typename T0::message_indicator>
-    struct message;
-
-    template <protocol_concept T0>
-    struct message_header;
-
-    template <typename T>
-    concept message_concept = (std::is_same_v<T, message<typename T::protocol, T::type>> &&
-        std::is_trivially_copyable_v<T> && std::is_base_of_v<message_header<typename T::protocol>, T>);
-
-} // namespace lime::message
-
-
-#include "./receiver/receiver.h"
+}
