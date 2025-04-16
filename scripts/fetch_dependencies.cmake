@@ -74,5 +74,5 @@ function(fetch_dependency dependency)
     FetchContent_MakeAvailable(${repo_name})
     FetchContent_GetProperties(${repo_name})
 
-    set(_${repo_name}_src_path ${CMAKE_BINARY_DIR}/${repo_name}-src CACHE STRING "")
+    set(_${repo_name}_dir ${CMAKE_BINARY_DIR}/${repo_name}-src CACHE STRING "")
 endfunction()
