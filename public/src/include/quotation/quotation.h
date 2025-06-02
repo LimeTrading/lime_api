@@ -23,20 +23,14 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Author: MAM, SAN
+    Creation Date:  February 27, 2025
 */
 
 #pragma once
 
-#include "./shares.h"
-#include "./price.h"
-#include "./fixed_price.h"
-
-#include <type_traits>
-#include <concepts>
-#include <cstdint>
-#include <iostream>
+#include "./notional_value.h"
+#include "../conversion_string.h"
 
 
 namespace lime
@@ -55,22 +49,32 @@ namespace lime
         strike          = 5,
         imbalance       = 6,
         round_lot       = 7,
-        abstract        = 8 
+        abstract        = 8,
+        mid             = 9,
+        open_interest   = 10,
+
+        open            = 11,
+        close           = 12
     };
 
 
     static auto constexpr bid_quotation = quotation_type::bid;
     static auto constexpr ask_quotation = quotation_type::ask;
+    static auto constexpr offer_quotation = quotation_type::offer;
+    static auto constexpr mid_quotation = quotation_type::mid;
     static auto constexpr trade_quotation = quotation_type::trade;
     static auto constexpr strike_quotation = quotation_type::strike;
     static auto constexpr abstract_quotation = quotation_type::abstract;
     static auto constexpr round_lot_quotation = quotation_type::round_lot;
     static auto constexpr volume_quotation = quotation_type::volume;
+    static auto constexpr open_interest_quotation = quotation_type::open_interest;
     static auto constexpr imbalance_quotation = quotation_type::imbalance;
+    static auto constexpr open_quotation = quotation_type::open;
+    static auto constexpr close_quotation = quotation_type::close;
 
 
     template <typename T>
-    concept quotable_concept = (shares_concept<T> || price_concept<T> || fixed_price_concept<T>);
+    concept quotable_concept = (quantity_concept<T> || price_concept<T> || monetary_value_concept<T>);
 
     template <quotation_type T0, quotable_concept T1> struct quotation;
 
@@ -80,7 +84,7 @@ namespace lime
 
     //=========================================================================
     template <quotation_type T0, quotable_concept T1>
-    class quotation
+    class quotation final
     {
     public:
 
@@ -96,99 +100,98 @@ namespace lime
         template <quotable_concept T_> constexpr quotation(quotation<quotation_type, T_> &&);
 
         template <quotable_concept T_> constexpr quotation & operator = (quotation<quotation_type, T_> &&);
-
-        template <numeric_concept ... Ts> constexpr quotation(Ts ...);
- 
+        
+        template <typename... Args>
+        requires std::constructible_from<value_type, Args...>
+        constexpr quotation(Args && ...args );
+        
         constexpr quotation(value_type const &);
         
         constexpr quotation(value_type &&);
 
-        constexpr std::strong_ordering operator <=> (quotation_concept auto const &);
+        constexpr std::strong_ordering operator <=> (quotation_concept auto const &) const noexcept;
+		
+        constexpr bool operator == (quotation_concept auto const &) const noexcept;
 
-        constexpr bool operator == (quotation_concept auto const &);
+		constexpr bool operator != (quotation_concept auto const &) const noexcept;
+        
+        constexpr explicit operator bool() const noexcept;
 
-        constexpr auto get() const;
+        constexpr value_type get() const noexcept;
 
-        template <quotable_concept T_> constexpr quotation operator + (quotation<quotation_type, T_> const & other) const{auto value = value_; return {value + other.value_};}
-        template <quotable_concept T_> constexpr quotation & operator += (quotation<quotation_type, T_> const & other) {value_ += other.value_; return *this;}
-        constexpr quotation operator + (numeric_concept auto n) const{auto value = value_; return {value + n};}
-        constexpr quotation & operator += (numeric_concept auto n) {value_ += n; return *this;}
-
-
-        template <quotable_concept T_> constexpr quotation operator - (quotation<quotation_type, T_> const & other) const{auto value = value_; return {value - other.value_};}
-        template <quotable_concept T_> constexpr quotation & operator -= (quotation<quotation_type, T_> const & other) {value_ -= other.value_; return *this;}
-        constexpr quotation operator - (numeric_concept auto n) const{auto value = value_; return {value - n};}
-        constexpr quotation & operator -= (numeric_concept auto n) {value_ -= n; return *this;}
-
-
-        template <quotable_concept T_> constexpr quotation operator * (quotation<quotation_type, T_> const & other) const{auto value = value_; return {value * other.value_};}
-        template <quotable_concept T_> constexpr quotation & operator *= (quotation<quotation_type, T_> const & other) {value_ *= other.value_; return *this;}
-        constexpr quotation operator * (numeric_concept auto n) const{auto value = value_; return {value * n};}
-        constexpr quotation & operator *= (numeric_concept auto n) {value_ *= n; return *this;}
-
-
-        template <quotable_concept T_> constexpr quotation operator / (quotation<quotation_type, T_> const & other) const{auto value = value_; return {value / other.value_};}
-        template <quotable_concept T_> constexpr quotation & operator /= (quotation<quotation_type, T_> const & other) {value_ /= other.value_; return *this;}
-        constexpr quotation operator / (numeric_concept auto n) const {auto value = value_; return {value / n};}
-        constexpr quotation & operator /= (numeric_concept auto n) {value_ /= n; return *this;}
-
+        constexpr quotation & operator += (quotation const & other) noexcept {value_ += other.value_; return *this;}
+        constexpr quotation & operator -= (quotation const & other) noexcept {value_ -= other.value_; return *this;}
+        constexpr quotation & operator *= (quotation const & other) noexcept {value_ *= other.value_; return *this;}
+        constexpr quotation & operator /= (quotation const & other) noexcept {value_ /= other.value_; return *this;}
+        
+        constexpr quotation & operator += (numeric_concept auto n) noexcept { value_ += n; return *this; }
+        constexpr quotation & operator -= (numeric_concept auto n) noexcept { value_ -= n; return *this; }
+        constexpr quotation & operator *= (numeric_concept auto n) noexcept { value_ *= n; return *this; }
+        constexpr quotation & operator /= (numeric_concept auto n) noexcept { value_ /= n; return *this; }
+    
     private:
 
         template <lime::quotation_type, quotable_concept> friend class quotation;
         template <lime::quotation_type> friend constexpr auto quotation_cast(quotation_concept auto const &);
-
-        friend std::ostream & operator << 
-        (
-            std::ostream & stream,
-            quotation const & quotation 
-        )
-        {
-            stream << to_string(quotation.value_);
-            return stream;
-        }
-
+        
         value_type value_;
     };
 
+	template <quotation_type T0, quotable_concept T1>
+	constexpr quotation<T0, T1> operator - (quotation<T0, T1> lhs, quotation<T0, T1> rhs) noexcept {lhs -= rhs; return lhs;}
 
+	template <quotation_type T0, quotable_concept T1>
+	constexpr quotation<T0, T1> operator + (quotation<T0, T1> lhs, quotation<T0, T1> rhs) noexcept {lhs += rhs; return lhs;}
+
+	template <quotation_type T0, quotable_concept T1>
+	constexpr quotation<T0, T1> operator * (quotation<T0, T1> lhs, quotation<T0, T1> rhs) noexcept {lhs *= rhs; return lhs;}
+
+	template <quotation_type T0, quotable_concept T1>
+	constexpr quotation<T0, T1> operator / (quotation<T0, T1> lhs, quotation<T0, T1> rhs) noexcept {lhs /= rhs; return lhs;}
+
+    
+    //=========================================================================
+    // quantity quotation types
+    template <quotation_type T0, numeric_concept T1> using quantity_quotation = quotation<T0, quantity<T1>>;
+
+    template <numeric_concept T> using bid_quantity = quantity_quotation<quotation_type::bid, T>;
+    template <numeric_concept T> using ask_quantity = quantity_quotation<quotation_type::ask, T>;
+    template <numeric_concept T> using offer_quantity = quantity_quotation<offer_quotation, T>;
+    template <numeric_concept T> using trade_quantity = quantity_quotation<quotation_type::trade, T>;
+    template <numeric_concept T> using round_lot_quantity = quantity_quotation<quotation_type::round_lot, T>;
+    template <numeric_concept T> using volume_quantity = quantity_quotation<quotation_type::volume, T>;
+    template <numeric_concept T> using abstract_quantity = quantity_quotation<quotation_type::abstract, T>;
+    template <numeric_concept T> using open_interest_quantity = quantity_quotation<open_interest_quotation, T>;
+    
     //=========================================================================
     // price quotation types
-    template <quotation_type T0, std::integral T1> using price_quotation = quotation<T0, price<T1>>;
-
-    template <std::integral T> using bid_price = price_quotation<bid_quotation, T>;
-    template <std::integral T> using ask_price = price_quotation<ask_quotation, T>;
-    template <std::integral T> using trade_price = price_quotation<trade_quotation, T>;
-    template <std::integral T> using strike_price = price_quotation<strike_quotation, T>;
-    template <std::integral T> using abstract_price = price_quotation<abstract_quotation, T>;
-    template <std::integral T> using imbalance_price = price_quotation<imbalance_quotation, T>;
-
+    template <quotation_type T0, lime::numeric_concept T1, lime::currency Ccy> using price_quotation = quotation<T0, price<T1, Ccy>>;
+    
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using bid_price = price_quotation<bid_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using ask_price = price_quotation<ask_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using offer_price = price_quotation<offer_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using mid_price = price_quotation<mid_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using trade_price = price_quotation<trade_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using strike_price = price_quotation<strike_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using abstract_price = price_quotation<abstract_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using imbalance_price = price_quotation<imbalance_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using open_price = price_quotation<open_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using close_price = price_quotation<close_quotation, T, Ccy>;
+    
     //=========================================================================
-    // fixed_price quotation types
-    template <quotation_type T0, std::uint32_t T1, std::integral T2> using fixed_price_quotation = quotation<T0, fixed_price<T1, T2>>;
-
-    template <std::uint32_t T0, std::integral T1> using bid_fixed_price = fixed_price_quotation<bid_quotation, T0, T1>;
-    template <std::uint32_t T0, std::integral T1> using ask_fixed_price = fixed_price_quotation<ask_quotation, T0, T1>;
-    template <std::uint32_t T0, std::integral T1> using trade_fixed_price = fixed_price_quotation<trade_quotation, T0, T1>;
-    template <std::uint32_t T0, std::integral T1> using strike_fixed_price = fixed_price_quotation<strike_quotation, T0, T1>;
-    template <std::uint32_t T0, std::integral T1> using abstract_fixed_price = fixed_price_quotation<abstract_quotation, T0, T1>;
-    template <std::uint32_t T0, std::integral T1> using imbalance_fixed_price = fixed_price_quotation<imbalance_quotation, T0, T1>;
-
-    //=========================================================================
-    // shares quotation types
-    template <quotation_type T0, std::integral T1> using shares_quotation = quotation<T0, shares<T1>>;
-
-    template <std::integral T> using bid_shares = shares_quotation<bid_quotation, T>;
-    template <std::integral T> using ask_shares = shares_quotation<ask_quotation, T>;
-    template <std::integral T> using trade_shares = shares_quotation<trade_quotation, T>;
-    template <std::integral T> using round_lot_shares = shares_quotation<round_lot_quotation, T>;
-    template <std::integral T> using volume_shares = shares_quotation<volume_quotation, T>;
-    template <std::integral T> using abstract_shares = shares_quotation<abstract_quotation, T>;
-    template <std::integral T> using imbalance_shares = shares_quotation<imbalance_quotation, T>;
-
-
+    // monetary value quotation types
+    template <quotation_type T0, lime::numeric_concept T1, lime::currency Ccy> using monetary_value_quotation = quotation<T0, lime::monetary_value<T1, Ccy>>;
+    
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using bid_monetary_value = monetary_value_quotation<bid_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using ask_monetary_value = monetary_value_quotation<ask_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using trade_monetary_value = monetary_value_quotation<trade_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using abstract_monetary_value = monetary_value_quotation<abstract_quotation, T, Ccy>;
+    template <lime::numeric_concept T, lime::currency Ccy = default_currency> using imbalance_monetary_value = monetary_value_quotation<imbalance_quotation, T, Ccy>;
+    
+    
     //=========================================================================
     template <quotation_type T>
-    [[__maybe_unused__]]
+    [[maybe_unused]]
     static constexpr auto quotation_cast
     (
         quotation_concept auto const & input
@@ -201,7 +204,7 @@ namespace lime
 
 
     //=========================================================================
-    [[__maybe_unused__]]
+    [[maybe_unused]]
     static constexpr inline auto byte_swap
     (
         quotation_concept auto const & source
@@ -213,17 +216,27 @@ namespace lime
 
 
     //=========================================================================
-    [[__maybe_unused__]]
-    static constexpr inline std::string to_string
+    [[maybe_unused]]
+    static std::string to_string
     (
         quotation_concept auto source
     )
     {
-        return to_string(source.get());
-    }    
-
+        return lime::to_string(source.get());
+    }
+    
 } // namespace lime
 
+template <lime::quotation_type T0, lime::quotable_concept T1>
+std::ostream & operator <<
+(
+    std::ostream & stream,
+    lime::quotation<T0, T1> const & quotation
+)
+{
+    stream << lime::to_string(quotation.get());
+    return stream;
+}
 
 //=============================================================================
 template <lime::quotation_type T0, lime::quotable_concept T1>
@@ -277,12 +290,13 @@ constexpr auto lime::quotation<T0, T1>::operator =
 
 //=============================================================================
 template <lime::quotation_type T0, lime::quotable_concept T1>
-template <lime::numeric_concept ... Ts> 
+template <typename... Args>
+requires std::constructible_from<typename lime::quotation<T0, T1>::value_type, Args...>
 constexpr lime::quotation<T0, T1>::quotation
 (
-    Ts ... args
+    Args && ...args
 ):
-    value_(std::forward<Ts>(args) ...)
+    value_(std::forward<Args>(args) ...)
 {
 }
 
@@ -314,20 +328,19 @@ template <lime::quotation_type T0, lime::quotable_concept T1>
 constexpr std::strong_ordering lime::quotation<T0, T1>::operator <=> 
 (
     quotation_concept auto const & other
-)
+) const noexcept
 {
     if (auto n = (value_ <=> other.value_); n <= 0)
         return (n == 0) ? std::strong_ordering::equivalent : std::strong_ordering::less;
     return std::strong_ordering::greater;
 }
 
-
 //=============================================================================
 template <lime::quotation_type T0, lime::quotable_concept T1>
 constexpr bool lime::quotation<T0, T1>::operator == 
 (
     quotation_concept auto const & other
-)
+) const noexcept
 {
     return (value_ == other.value_);
 }
@@ -335,9 +348,39 @@ constexpr bool lime::quotation<T0, T1>::operator ==
 
 //=============================================================================
 template <lime::quotation_type T0, lime::quotable_concept T1>
-constexpr auto lime::quotation<T0, T1>::get
+constexpr bool lime::quotation<T0, T1>::operator !=
 (
-) const
+	quotation_concept auto const & other
+) const noexcept
+{
+	return !(*this == other);
+}
+
+//=============================================================================
+template <lime::quotation_type T0, lime::quotable_concept T1>
+constexpr lime::quotation<T0, T1>::operator bool()
+const noexcept
+{
+    return value_.operator bool();
+}
+
+//=============================================================================
+template <lime::quotation_type T0, lime::quotable_concept T1>
+constexpr lime::quotation<T0, T1>::value_type lime::quotation<T0, T1>::get
+(
+) const noexcept
 {
     return value_;
+}
+
+
+//=============================================================================
+namespace std {
+    
+    template<lime::quotation_concept T>
+    struct hash<T>
+    {
+        auto operator()(T source) const noexcept { return source.get(); }
+    };
+    
 }

@@ -46,7 +46,7 @@ namespace lime
     static constexpr T byte_swap
     (
         T value
-    )
+    ) noexcept
     {
         return value;
     }
@@ -58,7 +58,7 @@ namespace lime
     static constexpr auto byte_swap
     (
         T value
-    )
+    ) noexcept
     {
         auto v = static_cast<std::uint16_t>(value);
         return static_cast<T>((v >> 8) | (v << 8));
@@ -71,7 +71,7 @@ namespace lime
     static constexpr auto byte_swap
     (
         T value
-    )
+    ) noexcept
     {
         return static_cast<T>(__builtin_bswap32(static_cast<uint32_t>(value)));
     }
@@ -83,7 +83,7 @@ namespace lime
     static constexpr auto byte_swap
     (
         T value
-    )
+    ) noexcept
     {
         return static_cast<T>(__builtin_bswap64(static_cast<uint64_t>(value)));
     }
@@ -95,22 +95,20 @@ namespace lime
     static constexpr auto byte_swap
     (
         T value
-    )
+    ) noexcept
     {
         return static_cast<T>(byte_swap(static_cast<std::underlying_type_t<T>>(value)));
     }
-	
 
     //=========================================================================
     template <typename rep, typename per>
     static auto byte_swap
     (
         std::chrono::duration<rep, per> source
-    ) -> std::chrono::duration<rep, per>
+    ) noexcept -> std::chrono::duration<rep, per>
     {
         using lime::byte_swap;
         return std::chrono::duration<rep, per>(byte_swap(source.count()));
     }
-
     
 } // namespace lime

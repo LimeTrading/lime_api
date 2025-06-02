@@ -23,31 +23,30 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Author: SAN
+    Creation Date:  March 6, 2025
 */
 
 #pragma once
 
-#include "./byte_swap.h"
+#include <concepts>
+#include <functional>
+#include <cstddef>
+#include <utility>
 
-#include <bit>
-#include <type_traits>
+namespace lime::alignment {
 
+	template <typename T>
+	requires (requires{std::greater<T>{};})
+	constexpr T constexpr_max(T const& a, T const& b) noexcept {
+		return a > b ? a : b;
+	}
 
-namespace lime
-{
+	template<typename... Args>
+	constexpr auto max = []<std::size_t ... N>(std::index_sequence<N ...> const &) noexcept {
+		std::size_t res {0};
+		((res = constexpr_max(res, alignof(std::tuple_element_t<N, std::tuple<Args...>>))),  ...);
+		return res;
+	}(std::make_index_sequence<std::tuple_size_v<std::tuple<Args...>>>());
 
-    template <std::endian from_endian, std::endian to_endian, typename data_type>
-    static constexpr data_type endian_swap
-    (
-        data_type input
-    ) noexcept
-    {
-        if constexpr (from_endian == to_endian)
-            return input;
-        else
-            return byte_swap(input);
-    }
-
-} // namespace lime
+}//!namespace lime::alignment

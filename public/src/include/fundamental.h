@@ -23,31 +23,10 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Author: SAN
+    Creation Date:  April 14, 2025
 */
 
 #pragma once
 
-#include "./byte_swap.h"
-
-#include <bit>
-#include <type_traits>
-
-
-namespace lime
-{
-
-    template <std::endian from_endian, std::endian to_endian, typename data_type>
-    static constexpr data_type endian_swap
-    (
-        data_type input
-    ) noexcept
-    {
-        if constexpr (from_endian == to_endian)
-            return input;
-        else
-            return byte_swap(input);
-    }
-
-} // namespace lime
+#include "./fundamental/fundamental_value_type.h"

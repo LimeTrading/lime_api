@@ -44,9 +44,14 @@ SOFTWARE.
 namespace lime
 {
 
+    template <std::size_t N, char F> class string_array;
+
+    template <typename T>
+    concept string_array_concept = std::is_same_v<T, string_array<T::max_size, T::fill>>;
+
     #pragma pack(push, 1)
     template <std::size_t N, char F = ' '>
-    class string_array
+    class string_array final
     {
     public:
 
@@ -67,25 +72,23 @@ namespace lime
             std::string const &
         );
 
+        template <typename T>
+        requires (std::is_same_v<std::decay_t<T>, std::string_view> || std::is_same_v<std::decay_t<T>, std::span<char const>>)
         string_array
         (
-            std::string_view const
-        );
-
-        string_array
-        (
-            std::span<char const>
+            T
         );
 
         ~string_array() = default;
-        string_array(string_array const &) = default;
-        string_array(string_array &&) = default;
-        string_array & operator = (string_array const &) = default;
-        string_array & operator = (string_array &&) = default;
 
-        std::string_view const get() const;
+        string_array(string_array_concept auto const & other) requires (other.capacity() <= N);
+        string_array & operator = (string_array_concept auto const & other) requires (other.capacity() <= N);
+        string_array(string_array_concept auto && other) requires (other.capacity() <= N);
+        string_array & operator = (string_array_concept auto && other) requires (other.capacity() <= N);
 
-        constexpr operator std::string_view const() const;
+        std::string_view get() const;
+
+        constexpr operator std::string_view() const;
 
         constexpr operator std::span<char const> const() const;
 
@@ -123,9 +126,6 @@ namespace lime
     #pragma pack(pop)
 
 
-    template <typename T>
-    concept string_array_concept = std::is_same_v<T, string_array<T::max_size, T::fill>>;
-
 } // namespace lime
 
 
@@ -162,6 +162,74 @@ static std::ostream & operator <<
 template <std::size_t N, char F>
 lime::string_array<N, F>::string_array
 (
+    string_array_concept auto const & other
+) requires (other.capacity() <= N)
+{
+    auto otherSize = other.size();
+    auto fillLocation = std::copy_n(other.begin(), otherSize, begin());
+    if (fillLocation < end())
+        std::fill_n(fillLocation, (capacity() - otherSize), fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
+    string_array_concept auto && other
+) requires (other.capacity() <= N)
+{
+    auto otherSize = other.size();
+    auto fillLocation = std::copy_n(other.begin(), otherSize, begin());
+    if (fillLocation < end())
+        std::fill_n(fillLocation, (capacity() - otherSize), fill);
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+auto lime::string_array<N, F>::operator =
+(
+    string_array_concept auto const & other
+) -> string_array & requires (other.capacity() <= N)
+{
+    if constexpr (std::is_same_v<string_array, std::decay_t<decltype(other)>>)
+    {
+        if (this == &other)
+            return *this;
+    }
+    auto otherSize = other.size();
+    auto fillLocation = std::copy_n(other.begin(), otherSize, begin());
+    if (fillLocation < end())
+        std::fill_n(fillLocation, (capacity() - otherSize), fill);
+    return *this;
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+auto lime::string_array<N, F>::operator =
+(
+    string_array_concept auto && other
+) -> string_array & requires (other.capacity() <= N)
+{
+    if constexpr (std::is_same_v<string_array, std::decay_t<decltype(other)>>)
+    {
+        if (this == &other)
+            return *this;
+    }
+    auto otherSize = other.size();
+    auto fillLocation = std::copy_n(other.begin(), otherSize, begin());
+    if (fillLocation < end())
+        std::fill_n(fillLocation, (capacity() - otherSize), fill);
+    return *this;
+}
+
+
+//=============================================================================
+template <std::size_t N, char F>
+lime::string_array<N, F>::string_array
+(
 )
 {
     std::fill_n(value_.data(), value_.size(), fill);
@@ -172,35 +240,20 @@ lime::string_array<N, F>::string_array
 template <std::size_t N, char F>
 lime::string_array<N, F>::string_array
 (
-    std::string_view const value
-)
-{
-    auto bytesToCopy = std::min(value.size(), value_.size());
-    std::copy_n(value.data(), bytesToCopy, value_.data());
-    if (bytesToCopy < value_.size())
-        std::fill_n(value_.data() + bytesToCopy, value_.size() - bytesToCopy, fill);
-}
-
-
-//=============================================================================
-template <std::size_t N, char F>
-lime::string_array<N, F>::string_array
-(
     std::string const & value
-)
+):
+    string_array(std::span(value.c_str(), value.size()))
 {
-    auto bytesToCopy = std::min(value.size(), value_.size());
-    std::copy_n(value.data(), bytesToCopy, value_.data());
-    if (bytesToCopy < value_.size())
-        std::fill_n(value_.data() + bytesToCopy, value_.size() - bytesToCopy, fill);
 }
 
 
 //=============================================================================
-template <std::size_t N, char F>
+template <std::size_t N, char F>        
+template <typename T>
+requires (std::is_same_v<std::decay_t<T>, std::string_view> || std::is_same_v<std::decay_t<T>, std::span<char const>>)
 lime::string_array<N, F>::string_array
 (
-    std::span<char const> value
+    T value
 )
 {
     auto bytesToCopy = std::min(value.size(), value_.size());
@@ -233,7 +286,7 @@ void lime::string_array<N, F>::clear
 
 //=============================================================================
 template <std::size_t N, char F>
-std::string_view const lime::string_array<N, F>::get
+std::string_view lime::string_array<N, F>::get
 (
 ) const
 {
@@ -243,7 +296,7 @@ std::string_view const lime::string_array<N, F>::get
 
 //=============================================================================
 template <std::size_t N, char F>
-constexpr lime::string_array<N, F>::operator std::string_view const
+constexpr lime::string_array<N, F>::operator std::string_view
 (
 ) const
 {

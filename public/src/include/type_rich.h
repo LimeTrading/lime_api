@@ -30,7 +30,6 @@ SOFTWARE.
 #pragma once
 
 #include <include/endian.h>
-
 #include <library/configuration.h>
 
 #include <utility>
@@ -40,7 +39,15 @@ SOFTWARE.
 namespace lime
 {
 
-    template <typename T1, std::integral T2, T2 D = {}, bool invalidatable = false>
+    template <typename T1, std::integral T2, T2 D = {}, bool invalidatable = false> 
+    class type_rich;
+
+
+    template <typename T>
+    concept type_rich_concept = std::is_same_v<T, type_rich<typename T::tag_type, typename T::value_type, T::default_value, T::default_is_invalid>>;
+
+
+    template <typename T1, std::integral T2, T2 D, bool invalidatable>
     class type_rich
     {
     public:
@@ -51,13 +58,56 @@ namespace lime
         static auto constexpr default_is_invalid = invalidatable;
 
         constexpr type_rich() = default;
+        constexpr ~type_rich() = default;
         explicit constexpr type_rich(value_type value):value_(value){}
-        constexpr type_rich(type_rich const &) = default;
-        constexpr type_rich & operator = (type_rich const &) = default;
-        constexpr type_rich(type_rich &&) = default;
-        constexpr type_rich & operator = (type_rich &&) = default;
+        constexpr type_rich & operator = (value_type value){value_ = value; return *this;}
 
-        constexpr auto operator <=> (type_rich const &) const = default;
+        template <std::integral T_>
+        constexpr type_rich
+        (
+            type_rich<T1, T_, D, invalidatable> const & other
+        ):
+            value_(other.get())
+        {
+        }
+
+        template <std::integral T_>
+        constexpr type_rich & operator = 
+        (
+            type_rich<T1, T_, D, invalidatable> const & other
+        )
+        {
+            value_ = other.get();
+            return *this;
+        }
+
+        template <std::integral T_>
+        constexpr auto operator <=> 
+        (
+            type_rich<tag_type, T_, default_value, default_is_invalid> const & other
+        ) const
+        {
+            return (value_ <=> other.get());
+        }
+
+        template <std::integral T_>
+        constexpr auto operator != 
+        (
+            type_rich<tag_type, T_, default_value, default_is_invalid> const & other
+        ) const
+        {
+            return (value_ != other.get());
+        }
+
+        template <std::integral T_>
+        constexpr auto operator == 
+        (
+            type_rich<tag_type, T_, default_value, default_is_invalid> const & other
+        ) const
+        {
+            return (value_ == other.get());
+        }
+
         constexpr auto get() const{return value_;}
 
         operator bool() const requires (std::is_same_v<value_type, bool>){return value_;}
@@ -71,8 +121,6 @@ namespace lime
     };
 
 
-    template <typename T>
-    concept type_rich_concept = std::is_same_v<T, type_rich<typename T::tag_type, typename T::value_type, T::default_value, T::default_is_invalid>>;
 
 
     //=========================================================================

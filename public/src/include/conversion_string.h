@@ -29,7 +29,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "./concepts/numeric_concept.h"
+#include "./concepts/arithmetic_concept.h"
 
 #include <string>
 #include <string_view>
@@ -42,7 +42,7 @@ SOFTWARE.
 namespace lime
 {
 
-	template<numeric_concept Number>
+	template<arithmetic_concept Number>
 	std::optional<Number> from_string(std::string_view str) noexcept {
 		Number local_result;
 		auto const last {str.data() + str.size()};
@@ -57,8 +57,8 @@ namespace lime
 		return {local_result};
 	}
 
-	template <numeric_concept Number>
-	std::string to_string(Number value) noexcept {
+	template <arithmetic_concept Number>
+	std::string to_string(Number value) {
 		std::array<char, 64> symbols;
 		auto [p, ec] = std::to_chars(symbols.data(), symbols.data() + symbols.size(), value);
 		return std::string(symbols.data(), p);

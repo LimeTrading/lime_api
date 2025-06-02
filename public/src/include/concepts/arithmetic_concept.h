@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
+    Contributors: MAM, SAN
     Creation Date:  March 25th, 2025
 */
 
@@ -36,7 +36,12 @@ SOFTWARE.
 namespace lime
 {
 
-    template <typename T>
-    concept numeric_concept = (std::is_integral_v<T> or std::is_floating_point_v<T>);
-
+    template <typename T> concept arithmetic_concept = (std::integral<T> || std::floating_point<T>);
+    
+    template <typename T> static inline constexpr bool is_integral_v {std::integral<T>};
+    
+    template <typename T> static inline constexpr bool is_floating_v {std::floating_point<T>};
+    
+    template <typename T> static inline constexpr bool is_arithmetic_v {arithmetic_concept<T>};
+    
 }

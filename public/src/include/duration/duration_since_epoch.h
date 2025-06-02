@@ -80,9 +80,26 @@ namespace lime
         );
 
         template <chrono_duration_concept T_>
+        duration & operator += 
+        (
+            duration<T_, duration_origin::since_midnight>
+        );
+
+        template <chrono_duration_concept T_>
         duration operator + 
         (
             duration<T_, origin_type>
+        ) const;
+
+        template <chrono_duration_concept T_>
+        duration operator + 
+        (
+            duration<T_, duration_origin::since_midnight>
+        ) const;
+
+        duration operator +
+        (
+            chrono_duration_concept auto
         ) const;
 
         value_type get() const;
@@ -269,6 +286,33 @@ auto lime::duration_since_epoch<T>::operator +=
 //=============================================================================
 template <lime::chrono_duration_concept T>
 template <lime::chrono_duration_concept T_>
+auto lime::duration_since_epoch<T>::operator += 
+(
+    duration<T_, duration_origin::since_midnight> other
+) -> duration_since_epoch<T> &
+{
+    value_ += other.value_;
+    return *this;
+}
+
+
+//=============================================================================
+template <lime::chrono_duration_concept T>
+template <lime::chrono_duration_concept T_>
+auto lime::duration_since_epoch<T>::operator + 
+(
+    duration<T_, duration_origin::since_midnight> other
+) const -> duration_since_epoch<T>
+{    
+    auto ret = *this;
+    ret.value_ += other.get();
+    return ret;
+}
+
+
+//=============================================================================
+template <lime::chrono_duration_concept T>
+template <lime::chrono_duration_concept T_>
 auto lime::duration_since_epoch<T>::operator + 
 (
     duration<T_, origin_type> other
@@ -276,5 +320,18 @@ auto lime::duration_since_epoch<T>::operator +
 {
     auto ret = *this;
     ret.value_ += other.get();
+    return ret;
+}
+
+
+//=============================================================================
+template <lime::chrono_duration_concept T>
+auto lime::duration_since_epoch<T>::operator + 
+(
+    chrono_duration_concept auto other
+) const -> duration_since_epoch<T>
+{
+    auto ret = *this;
+    ret.value_ += other;
     return ret;
 }

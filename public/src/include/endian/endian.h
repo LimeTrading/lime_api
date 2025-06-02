@@ -69,7 +69,7 @@ namespace lime
         constexpr endian
         (
             T &&
-        );
+        ) noexcept;
 
         template <typename T0, typename ... Ts>
         requires ((sizeof ... (Ts) > 1) || !std::is_same_v<data_type, T0>)
@@ -77,50 +77,50 @@ namespace lime
         (
             T0 &&,
             Ts && ...
-        );
+        ) noexcept;
 
         constexpr endian
         (
             endian const &
-        ) = default;
+        ) noexcept = default;
 
         constexpr endian
         (
             endian &&
-        ) = default;
+        )  noexcept = default;
 
         constexpr endian & operator =
         (
             endian const &
-        ) = default;
+        )  noexcept = default;
 
         constexpr endian & operator =
         (
             endian &&
-        ) = default;
+        )  noexcept = default;
 
         template <typename T>
         requires (std::is_convertible_v<underlying_type, T>)
         constexpr endian & operator =
         (
             T &&
-        );
+        ) noexcept;
 
         template <typename T>
         requires (std::is_convertible_v<underlying_type, T>)
         constexpr operator T
         (
-        ) const
+        ) const noexcept
         {
             return {get()};
         }
 
-        constexpr underlying_type get() const;
+        constexpr underlying_type get() const noexcept;
 
         constexpr auto operator <=> 
         (
             endian_concept auto const & other
-        ) const
+        ) const noexcept
         {
             return (get() <=> other.get());
         }
@@ -128,7 +128,7 @@ namespace lime
         constexpr auto operator <=> 
         (
             underlying_type other
-        ) const
+        ) const noexcept
         {
             return (get() <=> other);
         }
@@ -136,7 +136,7 @@ namespace lime
         constexpr auto operator == 
         (
             endian_concept auto const & other
-        ) const
+        ) const noexcept
         {
             return (get() == other.get());
         }
@@ -144,15 +144,25 @@ namespace lime
         constexpr auto operator ==
         (
             underlying_type other
-        ) const
+        ) const noexcept
         {
             return (get() == other);
         }
 
-        template <typename T> constexpr underlying_type operator & (T const &) const;
-        template <typename T> constexpr underlying_type operator | (T const &) const;
-        template <typename T> constexpr endian & operator &= (T const &);
-        template <typename T> constexpr endian & operator |= (T const &);
+
+        template <typename T> requires requires(T x){(underlying_type() + x);} constexpr auto operator + (T && input) const noexcept{return value_.get() + input;}
+        template <typename T> requires requires(T x){(underlying_type() - x);} constexpr auto operator - (T && input) const noexcept{return value_.get() - input;}
+        template <typename T> requires requires(T x){(underlying_type() / x);} constexpr auto operator / (T && input) const noexcept{return value_.get() / input;}
+        template <typename T> requires requires(T x){(underlying_type() * x);} constexpr auto operator * (T && input) const noexcept{return value_.get() * input;}
+
+
+        template <typename T> requires requires(T x){(underlying_type() & x);} constexpr auto operator & (T && input) const noexcept{return value_.get() & input;}
+        template <typename T> requires requires(T x){(underlying_type() | x);} constexpr auto operator | (T && input) const noexcept{return value_.get() | input;}
+        template <typename T> requires requires(T x){(underlying_type() % x);} constexpr auto operator % (T && input) const noexcept{return value_.get() % input;}
+
+        template <typename T> requires requires(T x){(underlying_type() &= x);} constexpr endian & operator &= (T && input) const noexcept{value_ = endian_swap<std::endian::native, endian_type>(underlying_type(get() & input)); return *this;}
+        template <typename T> requires requires(T x){(underlying_type() |= x);} constexpr endian & operator |= (T && input) const noexcept{value_ = endian_swap<std::endian::native, endian_type>(underlying_type(get() | input)); return *this;}
+
 
     private:
 
@@ -216,7 +226,7 @@ constexpr lime::endian<data_type, endian_type>::endian
     // where, in the event of only one argument, the first argument can not be endian<data_type>
     T0 && arg0,
     Ts && ... args
-):
+) noexcept :
     endian(data_type(std::forward<T0>(arg0), std::forward<Ts>(args) ...))
 {
 }
@@ -229,7 +239,7 @@ template <typename T>
 constexpr lime::endian<data_type, endian_type>::endian
 (
     T && input
-)
+) noexcept
 {
     value_ = endian_swap<std::endian::native, endian_type>(underlying_type(std::forward<T>(input)));
 }
@@ -242,7 +252,7 @@ requires (std::is_convertible_v<data_type, T>)
 constexpr auto lime::endian<data_type, endian_type>::operator =
 (
     T && input
-) -> endian &
+) noexcept -> endian &
 {
     value_ = endian_swap<std::endian::native, endian_type>(underlying_type(std::forward<T>(input)));
     return *this;
@@ -253,57 +263,8 @@ constexpr auto lime::endian<data_type, endian_type>::operator =
 template <typename data_type, std::endian endian_type>
 constexpr auto lime::endian<data_type, endian_type>::get
 (
-) const -> underlying_type
+) const noexcept -> underlying_type
 {
     return endian_swap<endian_type, std::endian::native>(value_);
 }
 
-
-//==============================================================================
-template <typename data_type, std::endian endian_type>
-template <typename T>
-constexpr auto lime::endian<data_type, endian_type>::operator & 
-(
-    T const & other
-) const -> underlying_type 
-{
-    return underlying_type(get() & other);
-}
-
-
-//==============================================================================
-template <typename data_type, std::endian endian_type>
-template <typename T>
-constexpr auto lime::endian<data_type, endian_type>::operator | 
-(
-    T const & other
-) const -> underlying_type 
-{
-    return underlying_type(get() | other);
-}
-
-
-//==============================================================================
-template <typename data_type, std::endian endian_type>
-template <typename T>
-constexpr auto lime::endian<data_type, endian_type>::operator &= 
-(
-    T const & other
-) -> endian &
-{
-    value_ = endian_swap<std::endian::native, endian_type>(underlying_type(get() & other));
-    return *this;
-}
-
-
-//==============================================================================
-template <typename data_type, std::endian endian_type>
-template <typename T>
-constexpr auto lime::endian<data_type, endian_type>::operator |= 
-(
-    T const & other
-) -> endian &
-{
-    value_ = endian_swap<std::endian::native, endian_type>(underlying_type(get() | other));
-    return *this;
-}

@@ -23,31 +23,33 @@ SOFTWARE.
 */
 
 /*
-    Contributors: MAM
-    Creation Date:  March 25th, 2025
+    Author: MAM
+    Creation Date:  February 27, 2025
 */
 
 #pragma once
 
-#include "./byte_swap.h"
+#include <include/endian.h>
 
-#include <bit>
-#include <type_traits>
+#include <cstdint>
 
 
-namespace lime
+namespace lime::network
 {
 
-    template <std::endian from_endian, std::endian to_endian, typename data_type>
-    static constexpr data_type endian_swap
-    (
-        data_type input
-    ) noexcept
+    class subnet_mask
     {
-        if constexpr (from_endian == to_endian)
-            return input;
-        else
-            return byte_swap(input);
-    }
+    public:
 
-} // namespace lime
+        using value_type = std::uint32_t;
+
+        subnet_mask(std::uint32_t value):value_(endian_swap<std::endian::native, std::endian::big>(value_type(~0) << (32 - value))){}
+
+        value_type get() const{return value_;}
+
+    private:
+
+        std::uint32_t value_{0ull};
+    };
+
+} // namespace lime::network
